@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->integer('total_amount');
+            $table->decimal('total_amount', 10, 2)->default(0);
             $table->timestamps();
         });
     }

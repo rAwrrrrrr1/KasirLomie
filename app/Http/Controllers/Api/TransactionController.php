@@ -6,36 +6,38 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\Menu;
 
 class TransactionController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
-            'items' => 'required|array',
-            'items.*.menu_id' => 'required|exists:menus,id',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
+        $items = $request->input('items');
+        $totalAmount = 0;
 
-        $total = 0;
-        foreach ($request->items as $item) {
-            $menu = \App\Models\Menu::find($item['menu_id']);
-            $total += $menu->price * $item['quantity'];
+        foreach ($items as $item) {
+            $menu = Menu::findOrFail($item['menu_id']);
+            $totalAmount += $menu->price * $item['quantity'];
         }
 
-        $transaction = Transaction::create(['total_amount' => $total]);
+        // Simpan transaksi
+        $transaction = Transaction::create([
+            'total_amount' => $totalAmount,
+        ]);
 
-        foreach ($request->items as $item) {
-            $menu = \App\Models\Menu::find($item['menu_id']);
+        // Simpan item-item transaksi
+        foreach ($items as $item) {
             TransactionItem::create([
                 'transaction_id' => $transaction->id,
                 'menu_id' => $item['menu_id'],
                 'quantity' => $item['quantity'],
-                'subtotal' => $menu->price * $item['quantity'],
             ]);
         }
 
-        return response()->json(['message' => 'Transaction created', 'total' => $total]);
+        return response()->json([
+            'message' => 'Transaksi berhasil disimpan.',
+            'transaction_id' => $transaction->id,
+        ], 201);
     }
 
     public function index()
